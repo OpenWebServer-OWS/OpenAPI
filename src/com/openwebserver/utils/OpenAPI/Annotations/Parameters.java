@@ -5,12 +5,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface OpenAPI {
+public @interface Parameters {
 
-    String value() default "";
-    String description() default "";
-    String[] tags() default {};
-    String operationId() default "#";
+    String[] names();
+    String[] in();
+    String[] descriptions();
+    boolean[] required() default {false};
+    String type() default "String";
+    String format() default "";
+
 }
+
