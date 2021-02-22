@@ -11,6 +11,7 @@ public @interface OpenAPI {
 
     String value() default "";
     String description() default "";
+    String summary() default "";
     String[] tags() default {};
     String operationId() default "#";
 }

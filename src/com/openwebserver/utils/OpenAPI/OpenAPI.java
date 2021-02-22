@@ -11,7 +11,6 @@ import com.openwebserver.services.Annotations.Route;
 import com.openwebserver.services.Objects.Service;
 import com.openwebserver.utils.OpenAPI.Annotations.Parameters;
 import com.openwebserver.utils.OpenAPI.Annotations.Responses;
-import com.openwebserver.utils.OpenAPI.Annotations.Summary;
 import com.openwebserver.utils.OpenAPI.Components.Tag;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -99,9 +98,7 @@ public class OpenAPI extends Service {
                 method.put("tags", api.tags());
                 //endregion
                 //region summary
-                if(m.isAnnotationPresent(Summary.class)){
-                    method.put("summary", m.getAnnotation(Summary.class).value());
-                }
+                method.put("summary", m.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class).summary());
                 //endregion
                 //region description
                 String description = api.description();
