@@ -15,6 +15,7 @@ import com.openwebserver.utils.OpenAPI.Components.Tag;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
 import java.util.Locale;
 
 import static Collective.Collective.*;
@@ -31,7 +32,7 @@ public class OpenAPI extends Service {
     private final JSONObject _root = new JSONObject().put("openapi", OpenAPI.version);
         private final JSONObject info = new JSONObject();
         private final JSONArray tags = new JSONArray();
-        private final JSONArray schemes = new JSONArray();
+        private final JSONArray servers = new JSONArray();
         private final JSONObject paths = new JSONObject();
 //        private final JSONObject definitions = new JSONObject(); //TODO
 //        private final JSONObject externalDocs = new JSONObject(); //TODO
@@ -39,7 +40,7 @@ public class OpenAPI extends Service {
 
     public OpenAPI(String title, String description, String version){
         super("/openapi");
-        super.routes.add(this);
+        add(this);
         info.put("title", title);
         info.put("description", description);
         info.put("version", version);
@@ -51,23 +52,13 @@ public class OpenAPI extends Service {
         return this;
     }
 
-    public OpenAPI setHost(String host){
-        _root.put("host", host);
-        return this;
-    }
-
-    public OpenAPI setBasePath(String basePath){
-        _root.put("basePath", basePath);
-        return this;
-    }
-
     public OpenAPI addTag(Tag tag){
         tags.put(tag);
         return this;
     }
 
-    public OpenAPI addScheme(String scheme){
-        schemes.put(scheme);
+    public OpenAPI addServer(String server){
+        servers.put(new JSONObject().put("url", server));
         return this;
     }
 
@@ -86,9 +77,10 @@ public class OpenAPI extends Service {
                 ));
     }
 
+
     public JSONObject generate(){
         _root.put("info", info);
-        _root.put("schemes", schemes);
+        _root.put("servers", servers);
         routes.forEach((r, methods) ->{
             JSONObject route = new JSONObject();
             methods.forEach(m -> {
@@ -110,8 +102,8 @@ public class OpenAPI extends Service {
                 //endregion
                 //region parameters
                 Route r1 = m.getAnnotation(Route.class);
+                JSONArray parameters = new JSONArray();
                 if(RESTDecoder.containsRegex(r1.path()) && m.isAnnotationPresent(Parameters.class)){
-                    JSONArray parameters = new JSONArray();
                     Parameters params = m.getAnnotation(Parameters.class);
                     for (int i = 0; i < params.names().length; i++) {
                         JSONObject param = new JSONObject();
@@ -119,10 +111,25 @@ public class OpenAPI extends Service {
                         param.put("name", params.names()[i]);
                         param.put("description", params.descriptions()[i]);
                         param.put("required", true);
+                        param.put("schema", new JSONObject().put("type", "string"));
                         parameters.put(param);
                     }
-                    method.put("parameters", parameters);
+
+                }else if(r1.require().length >0){
+                    for (String p : r1.require()) {
+                        JSONObject param = new JSONObject();
+                        if(r1.method() == Method.GET){
+                            param.put("in", "query");
+                        }else{
+                            param.put("in", "formData");
+                        }
+                        param.put("name", p);
+                        param.put("required", true);
+                        param.put("schema", new JSONObject().put("type", "string"));
+                        parameters.put(param);
+                    }
                 }
+                method.put("parameters", parameters);
                 //endregion
                 //region responses
                 if(m.isAnnotationPresent(Responses.class)){
@@ -143,11 +150,11 @@ public class OpenAPI extends Service {
         return _root;
     }
 
-    @Route(path = "/specification")
+
+    @Route(path = "/specification", method = Method.GET)
     public Response specification(Request request){
-        if(schemes.isEmpty()){
-           addScheme(getDomain().getProtocol());
-           setHost(getDomain().getAlias());
+        if(servers.isEmpty()){
+           addServer(getDomain().getAlias());
         }
         return Response.simple(generate());
     }
