@@ -1,59 +1,49 @@
 package com.openwebserver.utils.OpenAPI;
 
 import FileManager.Folder;
-import Tree.TreeArrayList;
 import com.openwebserver.core.Content.Code;
+import com.openwebserver.core.Handlers.RequestHandler;
 import com.openwebserver.core.Objects.Headers.Header;
 import com.openwebserver.core.Objects.Request;
 import com.openwebserver.core.Objects.Response;
-import com.openwebserver.core.WebException;
+import com.openwebserver.core.Routing.Router;
 import com.openwebserver.services.Annotations.Route;
 import com.openwebserver.services.Objects.Service;
-import com.openwebserver.utils.OpenAPI.Annotations.Parameters;
-import com.openwebserver.utils.OpenAPI.Annotations.Responses;
-import com.openwebserver.utils.OpenAPI.Components.Tag;
+import com.openwebserver.utils.OpenAPI.Components.*;
+import com.tree.TreeArrayList;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
-import java.util.Locale;
+import java.util.function.Consumer;
 
-import static Collective.Collective.*;
-import static com.openwebserver.services.ServiceManager.*;
+import static com.openwebserver.utils.OpenAPI.utils.MyCollection.doForEach;
 
-public class OpenAPI extends Service {
+public class OpenAPI extends Service implements SpecificationHolder {
 
     public static String version = "3.0.3";
     private static final Folder resources = new Folder("./res/swagger_ui");
 
-    private final TreeArrayList<String, java.lang.reflect.Method> routes = new TreeArrayList<>();
+    private final TreeArrayList<String, MethodSpecification> routes = new TreeArrayList<>();
 
     //region JSONStructure
     private final JSONObject _root = new JSONObject().put("openapi", OpenAPI.version);
-        private final JSONObject info = new JSONObject();
-        private final JSONArray tags = new JSONArray();
-        private final JSONArray servers = new JSONArray();
-        private final JSONObject paths = new JSONObject();
-//        private final JSONObject definitions = new JSONObject(); //TODO
-//        private final JSONObject externalDocs = new JSONObject(); //TODO
+    private final JSONObject info = new JSONObject();
+    private final JSONArray servers = new JSONArray();
+    private final JSONObject paths = new JSONObject();
+    private final JSONObject components = new JSONObject();
     //endregion
 
     public OpenAPI(String title, String description, String version){
         super("/openapi");
-        add(this);
         info.put("title", title);
         info.put("description", description);
         info.put("version", version);
-        generateSpecification();
     }
+
 
     public OpenAPI addInfo(String key, Object value){
         info.put(key, value);
-        return this;
-    }
-
-    public OpenAPI addTag(Tag tag){
-        tags.put(tag);
         return this;
     }
 
@@ -62,90 +52,46 @@ public class OpenAPI extends Service {
         return this;
     }
 
-    public OpenAPI addRoute(java.lang.reflect.Method m){
-        if(m.isAnnotationPresent(Route.class)){
-            routes.addOn(m.getAnnotation(Route.class).path(), m);
-        }
-        return this;
+//    public OpenAPI addRoute(Pair<Service,java.lang.reflect.Method> serviceMethodPair){
+////        if(serviceMethodPair.getValue().isAnnotationPresent(Route.class)){
+////            routes.addOn(serviceMethodPair.getValue().getAnnotation(Route.class).path(), serviceMethodPair);
+////        }
+////        return this;
+//    }
+
+
+    @Override
+    public void register(Consumer<RequestHandler> routeConsumer) {
+        super.register(routeConsumer);
+        Router.getRoutes(this.getDomain()).forEach(routes -> routes.values().forEach(handler -> {
+            try {
+                new MethodSpecification(handler, this);
+            } catch (OpenApiException.NotationException ignored) {}
+        }));
     }
 
-    public void generateSpecification(){
-        doForEach(getServices().values(), s -> s.getClass().isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class), service ->
-                doForEach(service.getClass().getDeclaredMethods(),
-                        m -> m.isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class),
-                        this::addRoute
-                ));
-    }
+
+
+//        doForEach(getServices().values(), s -> s.getClass().isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class), service ->
+//                doForEach(service.getClass().getDeclaredMethods(),
+//                        m -> m.isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class),
+//                        method -> addRoute(new Pair<>(service, method))
+//                ));
+
 
 
     public JSONObject generate(){
-        _root.put("info", info);
-        _root.put("servers", servers);
-        routes.forEach((r, methods) ->{
-            JSONObject route = new JSONObject();
-            methods.forEach(m -> {
-                JSONObject method = new JSONObject();
-                //region tags
-                com.openwebserver.utils.OpenAPI.Annotations.OpenAPI api = m.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class);
-                method.put("tags", api.tags());
-                //endregion
-                //region summary
-                method.put("summary", m.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class).summary());
-                //endregion
-                //region description
-                String description = api.description();
-                method.put("description", (!description.equals(""))? description: "Description not provided");
-                //endregion
-                //region operationId
-                String operationId = api.operationId();
-                method.put("operationId", (!operationId.equals("#"))? operationId: m.getName());
-                //endregion
-                //region parameters
-                Route r1 = m.getAnnotation(Route.class);
-                JSONArray parameters = new JSONArray();
-                if(RESTDecoder.containsRegex(r1.path()) && m.isAnnotationPresent(Parameters.class)){
-                    Parameters params = m.getAnnotation(Parameters.class);
-                    for (int i = 0; i < params.names().length; i++) {
-                        JSONObject param = new JSONObject();
-                        param.put("in", params.in()[i]);
-                        param.put("name", params.names()[i]);
-                        param.put("description", params.descriptions()[i]);
-                        param.put("required", true);
-                        param.put("schema", new JSONObject().put("type", "string"));
-                        parameters.put(param);
-                    }
-
-                }else if(r1.require().length >0){
-                    for (String p : r1.require()) {
-                        JSONObject param = new JSONObject();
-                        if(r1.method() == Method.GET){
-                            param.put("in", "query");
-                        }else{
-                            param.put("in", "formData");
-                        }
-                        param.put("name", p);
-                        param.put("required", true);
-                        param.put("schema", new JSONObject().put("type", "string"));
-                        parameters.put(param);
-                    }
-                }
-                method.put("parameters", parameters);
-                //endregion
-                //region responses
-                if(m.isAnnotationPresent(Responses.class)){
-                    JSONObject responsesJSON = new JSONObject();
-                    Responses responses = m.getAnnotation(Responses.class);
-                    for (int i = 0; i < responses.codes().length; i++) {
-                        responsesJSON.put(String.valueOf(responses.codes()[i].getCode()),new JSONObject().put("description", responses.descriptions()[i]));
-                    }
-                    method.put("responses", responsesJSON);
-                }
-                //endregion
-                route.put(r1.method().name().toLowerCase(Locale.ROOT), method);
+        _root.put("info", getInfo());
+        _root.put("servers", getServers());
+        _root.put("components",getComponents());
+        routes.forEach((route, specifications) -> {
+            JSONObject requestMethods = new JSONObject();
+            specifications.forEach(methodSpecification -> {
+                methodSpecification.generate(requestMethods);
             });
-            paths.put(r, route);
+            getPaths().put(route,requestMethods);
         });
-        _root.put("paths", paths);
+        _root.put("paths", getPaths());
 
         return _root;
     }
@@ -153,9 +99,6 @@ public class OpenAPI extends Service {
 
     @Route(path = "/specification", method = Method.GET)
     public Response specification(Request request){
-        if(servers.isEmpty()){
-           addServer(getDomain().getAlias());
-        }
         return Response.simple(generate());
     }
 
@@ -276,8 +219,9 @@ public class OpenAPI extends Service {
 //        );
 //    }
 //
-    @Override
-    public Response handle(Request request) throws Throwable {
+
+    @Route(path = "/#", method = Method.GET)
+    public Response ALL(Request request) throws FileNotFoundException {
         if(request.isFile()){
             return Response.simple(resources.search(request.getFileName()));
         }else{
@@ -285,9 +229,30 @@ public class OpenAPI extends Service {
         }
     }
 
-    public static class OpenApiNotationException extends WebException {
-        public OpenApiNotationException(String message){
-            super(message);
-        }
+    @Override
+    public void register(MethodSpecification specification) {
+        routes.addOn(specification.getPath(), specification);
     }
+
+    @Override
+    public JSONObject getPaths() {
+        return paths;
+    }
+
+    @Override
+    public JSONObject getComponents() {
+        return components;
+    }
+
+    @Override
+    public JSONObject getInfo() {
+        return info;
+    }
+
+    @Override
+    public JSONArray getServers() {
+        return servers;
+    }
+
+
 }

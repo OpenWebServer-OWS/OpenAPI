@@ -1,10 +1,7 @@
-
 import com.openwebserver.core.Domain;
 import com.openwebserver.core.Routing.Router;
 import com.openwebserver.core.WebServer;
 import com.openwebserver.utils.OpenAPI.OpenAPI;
-
-import java.net.MalformedURLException;
 
 public class Main {
 

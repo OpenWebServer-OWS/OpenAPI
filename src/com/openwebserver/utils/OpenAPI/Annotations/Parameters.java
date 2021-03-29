@@ -13,7 +13,7 @@ public @interface Parameters {
     String[] in();
     String[] descriptions();
     boolean[] required() default {false};
-    String type() default "String";
+    Class<?>[] type() default String.class;
     String format() default "";
 
 }
