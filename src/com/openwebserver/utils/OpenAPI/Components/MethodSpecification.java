@@ -22,7 +22,10 @@ public class MethodSpecification {
     private final SpecificationHolder holder;
     private final Class<?> serviceClass;
 
-    public MethodSpecification(RequestHandler handler, SpecificationHolder holder) throws OpenApiException.NotationException {
+    public MethodSpecification(RequestHandler handler, SpecificationHolder holder) throws OpenApiException {
+        if(handler.getReflection() == null){
+            throw new OpenApiException("Not supported method");
+        }
         if (!handler.getReflection().isAnnotationPresent(OpenAPI.class)) {
             throw new OpenApiException.NotationException(OpenAPI.class);
         }

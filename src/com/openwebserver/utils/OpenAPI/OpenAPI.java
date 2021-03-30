@@ -22,7 +22,7 @@ import static com.openwebserver.utils.OpenAPI.utils.MyCollection.doForEach;
 public class OpenAPI extends Service implements SpecificationHolder {
 
     public static String version = "3.0.3";
-    private static final Folder resources = new Folder("./res/swagger_ui");
+    public static Folder resources = new Folder("./res/swagger_ui");
 
     private final TreeArrayList<String, MethodSpecification> routes = new TreeArrayList<>();
 
@@ -40,7 +40,6 @@ public class OpenAPI extends Service implements SpecificationHolder {
         info.put("description", description);
         info.put("version", version);
     }
-
 
     public OpenAPI addInfo(String key, Object value){
         info.put(key, value);
@@ -66,7 +65,7 @@ public class OpenAPI extends Service implements SpecificationHolder {
         Router.getRoutes(this.getDomain()).forEach(routes -> routes.values().forEach(handler -> {
             try {
                 new MethodSpecification(handler, this);
-            } catch (OpenApiException.NotationException ignored) {}
+            } catch (OpenApiException ignored) {}
         }));
     }
 
@@ -81,18 +80,19 @@ public class OpenAPI extends Service implements SpecificationHolder {
 
 
     public JSONObject generate(){
-        _root.put("info", getInfo());
-        _root.put("servers", getServers());
-        _root.put("components",getComponents());
-        routes.forEach((route, specifications) -> {
-            JSONObject requestMethods = new JSONObject();
-            specifications.forEach(methodSpecification -> {
-                methodSpecification.generate(requestMethods);
+        if(!_root.has("paths")) {
+            _root.put("info", getInfo());
+            _root.put("servers", getServers());
+            _root.put("components", getComponents());
+            routes.forEach((route, specifications) -> {
+                JSONObject requestMethods = new JSONObject();
+                specifications.forEach(methodSpecification -> {
+                    methodSpecification.generate(requestMethods);
+                });
+                getPaths().put(route, requestMethods);
             });
-            getPaths().put(route,requestMethods);
-        });
-        _root.put("paths", getPaths());
-
+            _root.put("paths", getPaths());
+        }
         return _root;
     }
 
