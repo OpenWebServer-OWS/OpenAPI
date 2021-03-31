@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.UUID;
 
-public class MethodSpecification {
+public class MethodSpecification extends JSONObject{
 
     private final String path;
     private final RequestHandler handler;
@@ -41,18 +41,41 @@ public class MethodSpecification {
     }
 
     public void generate(JSONObject container) {
-        JSONObject methodSpecification = new JSONObject();
+
         OpenAPI spec = handler.getReflection().getAnnotation(OpenAPI.class);
         if (!spec.summary().equals("")) {
-            methodSpecification.put("summary", spec.summary());
+            put("summary", spec.summary());
         }
         if (!spec.description().equals("")) {
-            methodSpecification.put("summary", spec.description());
+            put("description", spec.description());
         }
         if (!spec.operationId().equals("#")) {
-            methodSpecification.put("operationId", spec.operationId());
+            put("operationId", spec.operationId());
         } else {
-            methodSpecification.put("operationId", handler.getReflection().getName() + "%" + UUID.randomUUID().toString());
+            put("operationId", handler.getReflection().getName() + "%" + UUID.randomUUID().toString());
+        }
+
+        if(handler.getPolicy() != null){
+            if(!has("description")){
+                put("description", "");
+            }else{
+                put("description", get("description") +
+                        "</br>" +
+                        "</br><b>========= CORS POLICY =========</b>" +
+                        "</br> <b>Name: " + handler.getPolicy().getName() + "</b>" +
+                        "</br> <b>Origin: " + handler.getPolicy().getAllowedOrigin() + "</b>" +
+                        "</br> <b>Headers: " + handler.getPolicy().getAllowedHeaders() + "</b>" +
+                        "</br> <b>Methods: " + handler.getPolicy().getAllowedMethods() + "</b>" +
+                        "</br> <b>================================</b>"
+                );
+            }
+
+            if(!has("summery")){
+                put("summery", "");
+            }else{
+                put("summery", get("summery") + "[CORS]");
+            }
+
         }
 
         //region tags
@@ -63,7 +86,7 @@ public class MethodSpecification {
         if (spec.tags().length > 0) {
             Collections.addAll(tags, spec.tags());
         }
-        methodSpecification.put("tags", tags);
+        put("tags", tags);
         //endregion
 
         //region parameters (Only path, cookie, query, header)
@@ -138,7 +161,7 @@ public class MethodSpecification {
         }
         //endregion
 
-        methodSpecification.put("parameters", parameters);
+        put("parameters", parameters);
         //endregion
 
         //region requestBody
@@ -195,7 +218,7 @@ public class MethodSpecification {
                                 )
                         )
                 );
-                methodSpecification.put("requestBody", requestBody);
+                put("requestBody", requestBody);
             }
         }
         //endregion
@@ -207,7 +230,7 @@ public class MethodSpecification {
             for (int i = 0; i < annotationResponses.codes().length; i++) {
                 responses.put(String.valueOf(annotationResponses.codes()[i].getCode()), new JSONObject().put("description", annotationResponses.descriptions()[i]));
             }
-            methodSpecification.put("responses", responses);
+            put("responses", responses);
         }
         //endregion
 
@@ -222,6 +245,6 @@ public class MethodSpecification {
         //endregion
 
 
-        container.put(handler.getMethod().toString().toLowerCase(Locale.ROOT), methodSpecification);
+        container.put(handler.getMethod().toString().toLowerCase(Locale.ROOT),this);
     }
 }

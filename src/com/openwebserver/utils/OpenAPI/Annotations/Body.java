@@ -11,6 +11,7 @@ public @interface Body {
 
     enum Type{
         multipart_form_data("multipart/form-data"),
+        application_json("application/json"),
         x_www_form_encoded("application/x-www-form-urlencoded"),
         raw("raw");
 

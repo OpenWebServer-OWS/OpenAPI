@@ -1,5 +1,6 @@
 import com.openwebserver.core.Annotations.Session;
 import com.openwebserver.core.Objects.Request;
+import com.openwebserver.core.Security.CORS.CORS;
 import com.openwebserver.services.Annotations.Route;
 import com.openwebserver.utils.OpenAPI.Annotations.OpenAPI;
 import com.openwebserver.utils.OpenAPI.Annotations.Parameters;
@@ -16,6 +17,7 @@ public class Test extends com.openwebserver.services.Objects.Service {
     @OpenAPI(description = "Get root params", summary = "SUMMARY TEST")
     @Responses
     @Parameters(names = "id", in="path", descriptions = "id")
+    @CORS(value = "test", overrideOrigin = true)
     @Route(path = "/hello/{id}", method = Method.PUT)
     public com.openwebserver.core.Objects.Response root(Request request){
         return com.openwebserver.core.Objects.Response.simple(request.GET());
