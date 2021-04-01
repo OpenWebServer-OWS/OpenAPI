@@ -1,6 +1,7 @@
 package com.openwebserver.utils.OpenAPI;
 
 import FileManager.Folder;
+import FileManager.Local;
 import com.openwebserver.core.Content.Code;
 import com.openwebserver.core.Handlers.RequestHandler;
 import com.openwebserver.core.Objects.Headers.Header;
@@ -17,14 +18,12 @@ import org.json.JSONObject;
 import java.io.FileNotFoundException;
 import java.util.function.Consumer;
 
-import static com.openwebserver.utils.OpenAPI.utils.MyCollection.doForEach;
-
 public class OpenAPI extends Service implements SpecificationHolder {
 
     public static String version = "3.0.3";
-    public static Folder resources = new Folder("./res/swagger_ui");
 
     private final TreeArrayList<String, MethodSpecification> routes = new TreeArrayList<>();
+    private final Folder resource = new Folder("./res/swagger_ui");
 
     //region JSONStructure
     private final JSONObject _root = new JSONObject().put("openapi", OpenAPI.version);
@@ -32,6 +31,7 @@ public class OpenAPI extends Service implements SpecificationHolder {
     private final JSONArray servers = new JSONArray();
     private final JSONObject paths = new JSONObject();
     private final JSONObject components = new JSONObject();
+    private Folder folder = null;
     //endregion
 
     public OpenAPI(String title, String description, String version){
@@ -39,6 +39,10 @@ public class OpenAPI extends Service implements SpecificationHolder {
         info.put("title", title);
         info.put("description", description);
         info.put("version", version);
+    }
+
+    public void setFolder(Folder folder){
+        this.folder = folder;
     }
 
     public OpenAPI addInfo(String key, Object value){
@@ -51,14 +55,6 @@ public class OpenAPI extends Service implements SpecificationHolder {
         return this;
     }
 
-//    public OpenAPI addRoute(Pair<Service,java.lang.reflect.Method> serviceMethodPair){
-////        if(serviceMethodPair.getValue().isAnnotationPresent(Route.class)){
-////            routes.addOn(serviceMethodPair.getValue().getAnnotation(Route.class).path(), serviceMethodPair);
-////        }
-////        return this;
-//    }
-
-
     @Override
     public void register(Consumer<RequestHandler> routeConsumer) {
         super.register(routeConsumer);
@@ -68,16 +64,6 @@ public class OpenAPI extends Service implements SpecificationHolder {
             } catch (OpenApiException ignored) {}
         }));
     }
-
-
-
-//        doForEach(getServices().values(), s -> s.getClass().isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class), service ->
-//                doForEach(service.getClass().getDeclaredMethods(),
-//                        m -> m.isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class),
-//                        method -> addRoute(new Pair<>(service, method))
-//                ));
-
-
 
     public JSONObject generate(){
         if(!_root.has("paths")) {
@@ -102,128 +88,10 @@ public class OpenAPI extends Service implements SpecificationHolder {
         return Response.simple(generate());
     }
 
-//    public OpenAPI(String title, String description, String version){
-//        super("/openapi");
-//        this.routes.add(this);
-//        info.put("title", title);
-//        info.put("description", description);
-//        info.put("version", version);
-//        this.paths = generateSpecification();
-//    }
-//
-//    public JSONObject generateSpecification(){
-//        for (Service service : ServiceManager.getServices().values()) {
-//            if(service.getClass().isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class)) {
-//                return getRoutes(service);
-//            }
-//        }
-//        return new JSONObject();
-//    }
-//
-//    public JSONObject getRoutes(Service service){
-//        JSONObject paths = new JSONObject();
-//        TreeArrayList<String, java.lang.reflect.Method> methodTreeArrayList = new TreeArrayList<>();
-//        for (java.lang.reflect.Method method : service.getClass().getDeclaredMethods()) {
-//            if(method.isAnnotationPresent(Route.class)){
-//                methodTreeArrayList.addOn(method.getAnnotation(Route.class).path(), method);
-//            }
-//        }
-//
-//        String summary = "";
-//        String description = "";
-//        for (Constructor<?> constructor : service.getClass().getDeclaredConstructors()) {
-//            if(constructor.isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class)){
-//                description = constructor.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class).value();
-//            }
-//            if(constructor.isAnnotationPresent(Summary.class)){
-//                summary = constructor.getAnnotation(Summary.class).value();
-//            }
-//        }
-//
-//        String finalSummary = summary;
-//        String finalDescription = description;
-//        methodTreeArrayList.forEach((path, methods) ->{
-//            JSONObject route = new JSONObject();
-//            route.put("summary", finalSummary);
-//            route.put("description", finalDescription);
-//            methods.forEach(method -> {
-//                JSONObject requestMethod = new JSONObject();
-//                if(method.isAnnotationPresent(Summary.class)){
-//                    requestMethod.put("summary", method.getAnnotation(Summary.class).value());
-//                }
-//                if(method.isAnnotationPresent(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class)){
-//                    requestMethod.put("description", method.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class).description());
-//                    requestMethod.put("tags", method.getAnnotation(com.openwebserver.utils.OpenAPI.Annotations.OpenAPI.class).tags());
-//                }
-//                if(method.isAnnotationPresent(Responses.class)){
-//                    Responses responses = method.getAnnotation(Responses.class);
-//                    JSONObject responsesJSON = new JSONObject();
-//                    if(responses.descriptions().length != responses.codes().length){
-//                        try {
-//                            throw new OpenApiNotationException("Invalid Responses declaration on method '"+method.getName()+"' in '"+service.getName()+"'");
-//                        } catch (OpenApiNotationException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                    else{
-//                        for (int i = 0; i < responses.descriptions().length; i++) {
-//                            responsesJSON.put(responses.codes()[i].name().toLowerCase(Locale.ROOT), new JSONObject().put("description", responses.descriptions()[i]));
-//                        }
-//                        requestMethod.put("responses", responsesJSON);
-//                    }
-//
-//                }
-//                if(method.isAnnotationPresent(Route.class)){
-//                    Route r = method.getAnnotation(Route.class);
-//                    if(RESTDecoder.containsRegex(r.path()) && method.isAnnotationPresent(Parameters.class)){
-//                        Parameters parameters = method.getAnnotation(Parameters.class);
-//                        JSONArray params = new JSONArray();
-//                        try {
-//                            for (int i = 0; i < parameters.in().length; i++) {
-//                                JSONObject parameterJSON = new JSONObject();
-//                                parameterJSON.put("in", parameters.in()[i]);
-//                                parameterJSON.put("name", parameters.names()[i]);
-//                                parameterJSON.put("description", parameters.descriptions()[i]);
-//                                parameterJSON.put("required", parameters.required()[i]);
-//                                params.put(parameterJSON);
-//                            }
-//                            requestMethod.put("parameters", params);
-//                        }catch (IndexOutOfBoundsException e){
-//                            try {
-//                                throw new OpenApiNotationException("Invalid Parameters declaration on method '"+method.getName()+"' in '"+service.getName()+"'");
-//                            } catch (OpenApiNotationException openApiNotationException) {
-//                                openApiNotationException.printStackTrace();
-//                            }
-//                        }
-//                    }
-//                }
-//                route.put(method.getAnnotation(Route.class).method().toString().toLowerCase(Locale.ROOT), requestMethod);
-//            });
-//            paths.put(path,route);
-//
-//        });
-//        return paths;
-//    }
-//
-//    public Response root(Request request){
-//        return Response.simple(Code.Ok).addHeader(new Header("Location", "./index.html"));
-//    }
-//
-//    @Route(path = "/specification")
-//    public Response specification(Request request){
-//        return Response.simple(new JSONObject()
-//                .put("openapi", version)
-//                .put("info", info)
-//                .put("servers", new JSONArray().put(new JSONObject().put("url", "/")))
-//                .put("paths", paths)
-//        );
-//    }
-//
-
     @Route(path = "/#", method = Method.GET)
     public Response ALL(Request request) throws FileNotFoundException {
         if(request.isFile()){
-            return Response.simple(resources.search(request.getFileName()));
+            return Response.simple(new Local(resource.getPath().toString() + "/" + request.getFileName()));
         }else{
             return Response.simple(Code.Temporary_Redirect).addHeader(new Header("Location", "./index.html"));
         }
