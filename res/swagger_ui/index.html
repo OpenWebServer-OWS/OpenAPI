@@ -36,11 +36,11 @@
     <script src="./swagger-ui-bundle.js" charset="UTF-8"> </script>
     <script src="./swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
     <script>
-
+      var domain = window.location.origin + "/openapi/specification"
       window.onload = function() {
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: "http://localhost:80/openapi/specification",
+        url: domain,
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [

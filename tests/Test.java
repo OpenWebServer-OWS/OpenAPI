@@ -1,10 +1,11 @@
-import com.openwebserver.core.Annotations.Session;
+
 import com.openwebserver.core.Objects.Request;
 import com.openwebserver.core.Security.CORS.CORS;
+import com.openwebserver.core.Security.Sessions.Annotations.Session;
 import com.openwebserver.services.Annotations.Route;
-import com.openwebserver.utils.OpenAPI.Annotations.OpenAPI;
-import com.openwebserver.utils.OpenAPI.Annotations.Parameters;
-import com.openwebserver.utils.OpenAPI.Annotations.Responses;
+import com.openwebserver.openapi.annotations.OpenAPI;
+import com.openwebserver.openapi.annotations.Parameters;
+import com.openwebserver.openapi.annotations.Responses;
 
 
 @OpenAPI(tags = "Test")
@@ -27,7 +28,7 @@ public class Test extends com.openwebserver.services.Objects.Service {
     @Responses
     @Route(path = "/start", method = Method.GET)
     public com.openwebserver.core.Objects.Response session(Request request){
-        return com.openwebserver.core.Objects.Response.simple("started").addHeader(new com.openwebserver.core.Sessions.Session());
+        return com.openwebserver.core.Objects.Response.simple("started").addHeader(new com.openwebserver.core.Security.Sessions.Session());
     }
 
     @OpenAPI(description = "POST root params")

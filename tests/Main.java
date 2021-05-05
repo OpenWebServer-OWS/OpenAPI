@@ -1,9 +1,9 @@
-import com.openwebserver.core.Domain;
+import com.openwebserver.core.Objects.Domain;
 import com.openwebserver.core.Routing.Router;
 import com.openwebserver.core.Security.CORS.Policy;
 import com.openwebserver.core.Security.CORS.PolicyManager;
 import com.openwebserver.core.WebServer;
-import com.openwebserver.utils.OpenAPI.OpenAPI;
+import com.openwebserver.openapi.OpenAPI;
 
 public class Main {
 
