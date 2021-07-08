@@ -1,9 +1,8 @@
 package com.openwebserver.openapi.components;
 
-import com.openwebserver.core.Handlers.RequestHandler;
-import com.openwebserver.core.Routing.Route;
-
-import com.openwebserver.core.Security.Sessions.Session;
+import com.openwebserver.core.handlers.RequestHandler;
+import com.openwebserver.core.routing.Route;
+import com.openwebserver.core.security.sessions.Session;
 import com.openwebserver.openapi.annotations.Body;
 import com.openwebserver.openapi.annotations.OpenAPI;
 import com.openwebserver.openapi.annotations.Parameters;
